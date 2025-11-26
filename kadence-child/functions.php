@@ -1,10 +1,7 @@
 <?php
-
-/**
- * ci cd work
- *
- * @return void
- */
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 /**
  * Enqueue child theme styles
  */
@@ -39,3 +36,8 @@ require_once get_stylesheet_directory() . '/include/frontend/licenses-popularity
   * Include jobs urgency badge feature
   */
 require_once get_stylesheet_directory() . '/include/frontend/jobs-urgency-badge-shortcode.php';
+
+/**
+ * Include testimonials post type feature
+ */
+ require_once get_stylesheet_directory() . '/include/admin/testimonials-post-type.php';
