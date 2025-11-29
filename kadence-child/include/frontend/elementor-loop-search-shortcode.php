@@ -117,78 +117,26 @@ class Elementor_Loop_Search_Shortcode {
         // Apply keyword search for title and content
         $query->set('s', $search_keyword);
         
-        // Build meta query to search in location fields (like property filter)
+        // Build meta query to search in location field (simplified for performance)
         if (!empty($this->location_meta_key)) {
-            // Get all possible location subfields from ACF
-            $location_subfields = $this->get_location_subfields($this->location_meta_key);
-            
             $meta_query = array(
                 'relation' => 'OR',
-            );
-            
-            // Search in each location subfield
-            foreach ($location_subfields as $subfield) {
-                $meta_query[] = array(
-                    'key' => $subfield,
+                // Search in main location field
+                array(
+                    'key' => $this->location_meta_key,
                     'value' => $search_keyword,
                     'compare' => 'LIKE'
-                );
-            }
+                ),
+                // Search in address subfield (full address is usually stored here)
+                array(
+                    'key' => $this->location_meta_key . '_address',
+                    'value' => $search_keyword,
+                    'compare' => 'LIKE'
+                ),
+            );
             
             $query->set('meta_query', $meta_query);
         }
-    }
-    
-    /**
-     * Get all location subfields from ACF field structure
-     * Similar to how property filter gets field structure
-     */
-    private function get_location_subfields($field_key) {
-        $subfields = array($field_key); // Always include the main field
-        
-        // Method 1: Try to get field structure from ACF
-        if (function_exists('acf_get_field')) {
-            $field = acf_get_field($field_key);
-            if ($field && isset($field['sub_fields']) && !empty($field['sub_fields'])) {
-                foreach ($field['sub_fields'] as $subfield) {
-                    $subfields[] = $field_key . '_' . $subfield['name'];
-                }
-                return $subfields;
-            }
-        }
-        
-        // Method 2: Try get_field_object with a sample post
-        if (function_exists('get_field_object')) {
-            $sample_post = get_posts(array(
-                'post_type' => 'any',
-                'posts_per_page' => 1,
-                'post_status' => 'publish'
-            ));
-            
-            if (!empty($sample_post)) {
-                $field = get_field_object($field_key, $sample_post[0]->ID);
-                if ($field && isset($field['sub_fields']) && !empty($field['sub_fields'])) {
-                    foreach ($field['sub_fields'] as $subfield) {
-                        $subfields[] = $field_key . '_' . $subfield['name'];
-                    }
-                    return $subfields;
-                }
-            }
-        }
-        
-        // Method 3: Common location subfield patterns (fallback)
-        // These are standard ACF location field subfields
-        $common_subfields = array(
-            $field_key . '_street_number',
-            $field_key . '_street_name',
-            $field_key . '_city',
-            $field_key . '_state',
-            $field_key . '_post_code',
-            $field_key . '_country',
-            $field_key . '_address', // Full address
-        );
-        
-        return array_merge($subfields, $common_subfields);
     }
     
     /**
