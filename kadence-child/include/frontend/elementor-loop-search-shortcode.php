@@ -15,8 +15,6 @@ if (!defined('ABSPATH')) {
 
 class Elementor_Loop_Search_Shortcode {
     
-    private $registered_query_ids = array();
-    
     public function __construct() {
         // Add the search shortcode
         add_shortcode('elementor_loop_search', array($this, 'render_search_form'));
@@ -24,8 +22,8 @@ class Elementor_Loop_Search_Shortcode {
         // Enqueue scripts
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
         
-        // Hook into all Elementor queries
-        add_action('elementor/query/query_args', array($this, 'filter_query_args'), 10, 2);
+        // Hook into Elementor query for query ID 6969 (add more as needed)
+        add_action('elementor/query/6969', array($this, 'filter_elementor_query'), 10, 2);
     }
     
     /**
@@ -62,9 +60,6 @@ class Elementor_Loop_Search_Shortcode {
             return '<p style="color: red;">Error: query_id parameter is required for elementor_loop_search shortcode.</p>';
         }
         
-        // Store query_id for filtering
-        $this->registered_query_ids[] = $atts['query_id'];
-        
         ob_start();
         ?>
 <div class="elementor-loop-search-wrapper">
@@ -94,45 +89,34 @@ class Elementor_Loop_Search_Shortcode {
     }
     
     /**
-     * Filter Elementor query arguments
+     * Filter the Elementor query for widget ID 6969
+     * Same approach as the property filter
      */
-    public function filter_query_args($query_args, $widget) {
-        // Check if we have search parameter in URL
-        if (!isset($_GET['search_keyword']) || empty($_GET['search_keyword']) || !isset($_GET['query_id'])) {
-            return $query_args;
-        }
-        
-        $url_query_id = sanitize_text_field($_GET['query_id']);
-        
-        // Get the widget's query ID
-        $widget_settings = $widget->get_settings();
-        $widget_query_id = isset($widget_settings['posts_query_id']) ? $widget_settings['posts_query_id'] : '';
-        
-        // Only apply filters if query IDs match
-        if ($widget_query_id !== $url_query_id) {
-            return $query_args;
+    public function filter_elementor_query($query, $widget) {
+        // Check if we have search parameter
+        if (!isset($_GET['search_keyword']) || empty($_GET['search_keyword'])) {
+            return;
         }
         
         $search_keyword = sanitize_text_field($_GET['search_keyword']);
         $location_meta_key = isset($_GET['location_meta_key']) ? sanitize_text_field($_GET['location_meta_key']) : '';
         
-        // Apply keyword search
-        $query_args['s'] = $search_keyword;
+        // Apply keyword search for title and content
+        $query->set('s', $search_keyword);
         
         // If location meta key is provided, also search in that field
         if (!empty($location_meta_key)) {
-            if (!isset($query_args['meta_query'])) {
-                $query_args['meta_query'] = array();
-            }
-            
-            $query_args['meta_query'][] = array(
-                'key' => $location_meta_key,
-                'value' => $search_keyword,
-                'compare' => 'LIKE'
+            $meta_query = array(
+                'relation' => 'OR',
+                array(
+                    'key' => $location_meta_key,
+                    'value' => $search_keyword,
+                    'compare' => 'LIKE'
+                )
             );
+            
+            $query->set('meta_query', $meta_query);
         }
-        
-        return $query_args;
     }
     
 }
