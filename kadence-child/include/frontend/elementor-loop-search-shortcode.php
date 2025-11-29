@@ -38,6 +38,14 @@ class Elementor_Loop_Search_Shortcode {
     public function enqueue_scripts() {
 
         wp_enqueue_script('jquery');
+
+        // CSS Styles
+        wp_enqueue_style(
+            'elementor-loop-search',
+            get_stylesheet_directory_uri() . '/assets/css/elementor-loop-search.css',
+            array(),
+            '1.2.0'
+        );
         
         // AJAX/JS Handler
         wp_add_inline_script('jquery', '
