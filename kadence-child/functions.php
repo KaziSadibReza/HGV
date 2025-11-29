@@ -46,3 +46,8 @@ require_once get_stylesheet_directory() . '/include/frontend/jobs-urgency-badge-
  * Include Elementor Loop Search shortcode feature
  */
 require_once get_stylesheet_directory() . '/include/frontend/elementor-loop-search-shortcode.php';
+
+/**
+ * Include Featured Posts shortcode feature
+ */
+require_once get_stylesheet_directory() . '/include/frontend/featured-posts-shortcode.php';
