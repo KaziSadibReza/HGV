@@ -33,14 +33,14 @@ class Elementor_Loop_Search_Shortcode {
             'elementor-loop-search',
             get_stylesheet_directory_uri() . '/assets/css/elementor-loop-search.css',
             array(),
-            '1.0.0'
+            '1.2.1'
         );
         
         wp_enqueue_script(
             'elementor-loop-search',
             get_stylesheet_directory_uri() . '/assets/js/elementor-loop-search.js',
             array('jquery'),
-            '1.0.0',
+            '1.2.0',
             true
         );
         
@@ -82,24 +82,16 @@ class Elementor_Loop_Search_Shortcode {
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
             </div>
-            <input type="text" name="search_keyword" class="job-search-input"
-                placeholder="<?php echo esc_attr($atts['placeholder_search']); ?>" aria-label="Search jobs" value="">
+            <input 
+                type="text" 
+                name="search_keyword"
+                class="job-search-input"
+                placeholder="<?php echo esc_attr($atts['placeholder_search']); ?>"
+                aria-label="Search jobs"
+                value=""
+            >
+            <button type="submit" style="display: none;" aria-hidden="true"></button>
         </div>
-
-        <?php if ($atts['show_location'] === 'yes' && !empty($atts['location_meta_key'])): ?>
-        <!-- Location Search Container -->
-        <div class="job-search-container" style="margin-top: 16px;">
-            <div class="search-icon">
-                <svg viewBox="0 0 24 24">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-            </div>
-            <input type="text" name="search_location" class="job-search-input"
-                placeholder="<?php echo esc_attr($atts['placeholder_location']); ?>" aria-label="Search location"
-                value="">
-        </div>
-        <?php endif; ?>
 
         <input type="hidden" name="action" value="elementor_loop_search">
         <input type="hidden" name="query_id" value="<?php echo esc_attr($atts['query_id']); ?>">
@@ -164,20 +156,21 @@ class Elementor_Loop_Search_Shortcode {
             'post_status' => 'publish'
         );
         
-        // Add search keyword
+        // Add search keyword - searches title and content
         if (!empty($search_keyword)) {
             $args['s'] = $search_keyword;
-        }
-        
-        // Add location meta query
-        if (!empty($search_location) && !empty($location_meta_key)) {
-            $args['meta_query'] = array(
-                array(
-                    'key' => $location_meta_key,
-                    'value' => $search_location,
-                    'compare' => 'LIKE'
-                )
-            );
+            
+            // Also search in location meta field if provided
+            if (!empty($location_meta_key)) {
+                $args['meta_query'] = array(
+                    'relation' => 'OR',
+                    array(
+                        'key' => $location_meta_key,
+                        'value' => $search_keyword,
+                        'compare' => 'LIKE'
+                    )
+                );
+            }
         }
         
         return $args;
@@ -206,25 +199,24 @@ class Elementor_Loop_Search_Shortcode {
         
         // Get search parameters from URL
         $search_keyword = isset($_GET['search_keyword']) ? sanitize_text_field($_GET['search_keyword']) : '';
-        $search_location = isset($_GET['search_location']) ? sanitize_text_field($_GET['search_location']) : '';
         $location_meta_key = isset($_GET['location_meta_key']) ? sanitize_text_field($_GET['location_meta_key']) : '';
         
-        // Apply keyword search
+        // Apply keyword search - searches title, content, AND location meta field
         if (!empty($search_keyword)) {
             $query_args['s'] = $search_keyword;
-        }
-        
-        // Apply location meta search
-        if (!empty($search_location) && !empty($location_meta_key)) {
-            if (!isset($query_args['meta_query'])) {
-                $query_args['meta_query'] = array();
-            }
             
-            $query_args['meta_query'][] = array(
-                'key' => $location_meta_key,
-                'value' => $search_location,
-                'compare' => 'LIKE'
-            );
+            // Also search in location meta field if provided
+            if (!empty($location_meta_key)) {
+                if (!isset($query_args['meta_query'])) {
+                    $query_args['meta_query'] = array();
+                }
+                
+                $query_args['meta_query'][] = array(
+                    'key' => $location_meta_key,
+                    'value' => $search_keyword,
+                    'compare' => 'LIKE'
+                );
+            }
         }
         
         return $query_args;

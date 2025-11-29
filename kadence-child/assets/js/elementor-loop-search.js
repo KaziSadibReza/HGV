@@ -10,14 +10,10 @@
     if (window.location.search) {
       var urlParams = new URLSearchParams(window.location.search);
       var searchKeyword = urlParams.get("search_keyword");
-      var searchLocation = urlParams.get("search_location");
 
-      // Populate search inputs with values from URL
+      // Populate search input with value from URL
       if (searchKeyword) {
         $('.job-search-input[name="search_keyword"]').val(searchKeyword);
-      }
-      if (searchLocation) {
-        $('.job-search-input[name="search_location"]').val(searchLocation);
       }
     }
 
@@ -32,7 +28,6 @@
       var queryId = $wrapper.data("query-id");
       var locationMeta = $wrapper.data("location-meta");
       var searchKeyword = $form.find('input[name="search_keyword"]').val();
-      var searchLocation = $form.find('input[name="search_location"]').val();
 
       // Find the Elementor loop grid with matching query ID
       var $loopGrid = $(
@@ -71,7 +66,6 @@
           nonce: elementorLoopSearch.nonce,
           query_id: queryId,
           search_keyword: searchKeyword,
-          search_location: searchLocation,
           location_meta_key: locationMeta,
         },
         success: function (response) {
@@ -86,9 +80,6 @@
 
             if (searchKeyword) {
               params.append("search_keyword", searchKeyword);
-            }
-            if (searchLocation) {
-              params.append("search_location", searchLocation);
             }
             params.append("query_id", queryId);
             if (locationMeta) {
