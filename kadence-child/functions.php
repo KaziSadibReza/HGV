@@ -41,3 +41,8 @@ require_once get_stylesheet_directory() . '/include/frontend/jobs-urgency-badge-
  * Include testimonials post type feature
  */
  require_once get_stylesheet_directory() . '/include/admin/testimonials-post-type.php';
+
+/**
+ * Include Elementor Loop Search shortcode feature
+ */
+require_once get_stylesheet_directory() . '/include/frontend/elementor-loop-search-shortcode.php';
