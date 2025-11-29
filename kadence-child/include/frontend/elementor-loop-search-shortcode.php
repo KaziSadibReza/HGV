@@ -90,7 +90,7 @@ class Elementor_Loop_Search_Shortcode {
     
     /**
      * Filter the Elementor query for widget ID 6969
-     * Same approach as the property filter
+     * Searches in post title, content, AND location meta field
      */
     public function filter_elementor_query($query, $widget) {
         // Check if we have search parameter
@@ -101,22 +101,24 @@ class Elementor_Loop_Search_Shortcode {
         $search_keyword = sanitize_text_field($_GET['search_keyword']);
         $location_meta_key = isset($_GET['location_meta_key']) ? sanitize_text_field($_GET['location_meta_key']) : '';
         
-        // Apply keyword search for title and content
-        $query->set('s', $search_keyword);
+        // Build meta query to search in location field
+        $meta_query = array('relation' => 'OR');
         
-        // If location meta key is provided, also search in that field
+        // If location meta key is provided, search in that field too
         if (!empty($location_meta_key)) {
-            $meta_query = array(
-                'relation' => 'OR',
-                array(
-                    'key' => $location_meta_key,
-                    'value' => $search_keyword,
-                    'compare' => 'LIKE'
-                )
+            $meta_query[] = array(
+                'key' => $location_meta_key,
+                'value' => $search_keyword,
+                'compare' => 'LIKE'
             );
             
+            // Set meta query
             $query->set('meta_query', $meta_query);
         }
+        
+        // Apply keyword search for title and content
+        // This works together with meta_query using OR logic
+        $query->set('s', $search_keyword);
     }
     
 }
