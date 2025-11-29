@@ -15,6 +15,8 @@ if (!defined('ABSPATH')) {
 
 class Elementor_Loop_Search_Shortcode {
     
+    private $location_meta_key = '';
+    
     public function __construct() {
         // Add the search shortcode
         add_shortcode('elementor_loop_search', array($this, 'render_search_form'));
@@ -60,6 +62,11 @@ class Elementor_Loop_Search_Shortcode {
             return '<p style="color: red;">Error: query_id parameter is required for elementor_loop_search shortcode.</p>';
         }
         
+        // Store location_meta_key for use in filter
+        if (!empty($atts['location_meta_key'])) {
+            $this->location_meta_key = $atts['location_meta_key'];
+        }
+        
         ob_start();
         ?>
 <div class="elementor-loop-search-wrapper">
@@ -79,9 +86,6 @@ class Elementor_Loop_Search_Shortcode {
         </div>
 
         <input type="hidden" name="query_id" value="<?php echo esc_attr($atts['query_id']); ?>">
-        <?php if (!empty($atts['location_meta_key'])): ?>
-        <input type="hidden" name="location_meta_key" value="<?php echo esc_attr($atts['location_meta_key']); ?>">
-        <?php endif; ?>
     </form>
 </div>
 <?php
@@ -90,7 +94,7 @@ class Elementor_Loop_Search_Shortcode {
     
     /**
      * Filter the Elementor query for widget ID 6969
-     * Searches in post title, content, AND location meta field
+     * Searches in post title, content, AND location meta fields
      */
     public function filter_elementor_query($query, $widget) {
         // Check if we have search parameter
@@ -99,26 +103,26 @@ class Elementor_Loop_Search_Shortcode {
         }
         
         $search_keyword = sanitize_text_field($_GET['search_keyword']);
-        $location_meta_key = isset($_GET['location_meta_key']) ? sanitize_text_field($_GET['location_meta_key']) : '';
-        
-        // Build meta query to search in location field
-        $meta_query = array('relation' => 'OR');
-        
-        // If location meta key is provided, search in that field too
-        if (!empty($location_meta_key)) {
-            $meta_query[] = array(
-                'key' => $location_meta_key,
-                'value' => $search_keyword,
-                'compare' => 'LIKE'
-            );
-            
-            // Set meta query
-            $query->set('meta_query', $meta_query);
-        }
         
         // Apply keyword search for title and content
-        // This works together with meta_query using OR logic
         $query->set('s', $search_keyword);
+        
+        // Build meta query to search in location fields (like property filter)
+        if (!empty($this->location_meta_key)) {
+            $meta_query = array(
+                'relation' => 'OR',
+                // Search in location meta field
+                array(
+                    'key' => $this->location_meta_key,
+                    'value' => $search_keyword,
+                    'compare' => 'LIKE'
+                ),
+                // Add more location-related fields if needed
+                // Similar to property filter searching in street, city, region, country
+            );
+            
+            $query->set('meta_query', $meta_query);
+        }
     }
     
 }
