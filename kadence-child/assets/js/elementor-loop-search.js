@@ -1,15 +1,32 @@
 /**
- * Elementor Loop Search - Simple form submission
- * Matches the property filter approach
+ * Elementor Loop Search - AJAX submission
  */
 jQuery(document).ready(function ($) {
   // Initialize the form with current URL parameters
   initializeFormFromURL();
 
-  // Form submission handler - just submits normally (no AJAX, no validation)
+  // AJAX form submission
   $(".elementor-loop-search-form").on("submit", function (e) {
-    // Let the form submit normally to reload page with parameters
-    // The Elementor widget will automatically filter based on URL parameters
+    e.preventDefault();
+
+    var $form = $(this);
+    var $wrapper = $form.closest(".elementor-loop-search-wrapper");
+    var searchKeyword = $form.find('input[name="search_keyword"]').val();
+    var queryId = $form.find('input[name="query_id"]').val();
+
+    // Don't search if empty
+    if (!searchKeyword || searchKeyword.trim() === "") {
+      return false;
+    }
+
+    // Build clean URL and redirect
+    var currentUrl = window.location.href.split("?")[0].split("#")[0];
+    var params = new URLSearchParams();
+    params.append("search_keyword", searchKeyword);
+    params.append("query_id", queryId);
+
+    // Redirect with clean URL
+    window.location.href = currentUrl + "?" + params.toString();
   });
 
   function initializeFormFromURL() {
@@ -25,12 +42,6 @@ jQuery(document).ready(function ($) {
     const queryId = urlParams.get("query_id");
     if (queryId) {
       $('input[name="query_id"]').val(queryId);
-    }
-
-    // Set location_meta_key hidden field if present
-    const locationMetaKey = urlParams.get("location_meta_key");
-    if (locationMetaKey) {
-      $('input[name="location_meta_key"]').val(locationMetaKey);
     }
   }
 });

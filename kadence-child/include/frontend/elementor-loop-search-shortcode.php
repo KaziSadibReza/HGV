@@ -46,6 +46,12 @@ class Elementor_Loop_Search_Shortcode {
             '1.2.0',
             true
         );
+        
+        // Localize script for AJAX
+        wp_localize_script('elementor-loop-search', 'elementorLoopSearchAjax', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('elementor_loop_search_nonce')
+        ));
     }
     
     /**
