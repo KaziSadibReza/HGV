@@ -1,21 +1,15 @@
 /**
  * Elementor Loop Search - Simple form submission
+ * Matches the property filter approach
  */
 jQuery(document).ready(function ($) {
   // Initialize the form with current URL parameters
   initializeFormFromURL();
 
-  // Form submission handler - just submits normally
+  // Form submission handler - just submits normally (no AJAX, no validation)
   $(".elementor-loop-search-form").on("submit", function (e) {
     // Let the form submit normally to reload page with parameters
     // The Elementor widget will automatically filter based on URL parameters
-  });
-
-  // Handle enter key in search input
-  $(".job-search-input").on("keypress", function (e) {
-    if (e.which === 13) {
-      $(this).closest("form").submit();
-    }
   });
 
   function initializeFormFromURL() {
