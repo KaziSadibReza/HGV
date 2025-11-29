@@ -20,6 +20,9 @@ class Elementor_Loop_Search_Shortcode {
         add_action('wp_ajax_elementor_loop_search', array($this, 'ajax_search'));
         add_action('wp_ajax_nopriv_elementor_loop_search', array($this, 'ajax_search'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        
+        // Apply search filters to Elementor Loop Grid queries
+        add_filter('elementor/query/query_args', array($this, 'apply_search_filters'), 10, 2);
     }
     
     /**
@@ -71,25 +74,32 @@ class Elementor_Loop_Search_Shortcode {
 <div class="elementor-loop-search-wrapper" data-query-id="<?php echo esc_attr($atts['query_id']); ?>"
     data-location-meta="<?php echo esc_attr($atts['location_meta_key']); ?>" id="<?php echo esc_attr($unique_id); ?>">
     <form class="elementor-loop-search-form" method="get">
-        <div class="search-fields">
-            <div class="search-field search-keyword">
-                <input type="text" name="search_keyword" class="search-input"
-                    placeholder="<?php echo esc_attr($atts['placeholder_search']); ?>" value="">
+        <!-- Job Search Container -->
+        <div class="job-search-container">
+            <div class="search-icon">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
             </div>
-
-            <?php if ($atts['show_location'] === 'yes' && !empty($atts['location_meta_key'])): ?>
-            <div class="search-field search-location">
-                <input type="text" name="search_location" class="location-input"
-                    placeholder="<?php echo esc_attr($atts['placeholder_location']); ?>" value="">
-            </div>
-            <?php endif; ?>
-
-            <div class="search-field search-submit">
-                <button type="submit" class="search-button">
-                    <?php echo esc_html($atts['button_text']); ?>
-                </button>
-            </div>
+            <input type="text" name="search_keyword" class="job-search-input"
+                placeholder="<?php echo esc_attr($atts['placeholder_search']); ?>" aria-label="Search jobs" value="">
         </div>
+
+        <?php if ($atts['show_location'] === 'yes' && !empty($atts['location_meta_key'])): ?>
+        <!-- Location Search Container -->
+        <div class="job-search-container" style="margin-top: 16px;">
+            <div class="search-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+            </div>
+            <input type="text" name="search_location" class="job-search-input"
+                placeholder="<?php echo esc_attr($atts['placeholder_location']); ?>" aria-label="Search location"
+                value="">
+        </div>
+        <?php endif; ?>
 
         <input type="hidden" name="action" value="elementor_loop_search">
         <input type="hidden" name="query_id" value="<?php echo esc_attr($atts['query_id']); ?>">
@@ -98,10 +108,6 @@ class Elementor_Loop_Search_Shortcode {
 
     <div class="search-loader" style="display: none;">
         <span class="loader-spinner"></span>
-    </div>
-
-    <div class="search-results-container">
-        <!-- Results will be loaded here via AJAX -->
     </div>
 </div>
 <?php
@@ -137,31 +143,15 @@ class Elementor_Loop_Search_Shortcode {
         // Get the results
         $query = new WP_Query($args);
         
-        if ($query->have_posts()) {
-            ob_start();
-            
-            while ($query->have_posts()) {
-                $query->the_post();
-                // Use Elementor's template rendering if available
-                $this->render_post_item();
-            }
-            
-            wp_reset_postdata();
-            
-            $html = ob_get_clean();
-            
-            wp_send_json_success(array(
-                'html' => $html,
-                'found_posts' => $query->found_posts,
-                'query_id' => $query_id
-            ));
-        } else {
-            wp_send_json_success(array(
-                'html' => '<div class="no-results"><p>No results found.</p></div>',
-                'found_posts' => 0,
-                'query_id' => $query_id
-            ));
-        }
+        // Return query data - Elementor Loop Grid will handle the rendering
+        wp_send_json_success(array(
+            'found_posts' => $query->found_posts,
+            'query_id' => $query_id,
+            'query_args' => $args,
+            'has_posts' => $query->have_posts()
+        ));
+        
+        wp_reset_postdata();
     }
     
     /**
@@ -194,40 +184,52 @@ class Elementor_Loop_Search_Shortcode {
     }
     
     /**
-     * Render individual post item
-     * This is a fallback template - Elementor's template will be used when available
+     * Apply search filters to Elementor Loop Grid queries
+     * This is triggered when the page loads with search parameters in the URL
      */
-    private function render_post_item() {
-        ?>
-<div class="elementor-loop-item">
-    <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
-        <?php if (has_post_thumbnail()): ?>
-        <div class="post-thumbnail">
-            <a href="<?php the_permalink(); ?>">
-                <?php the_post_thumbnail('medium'); ?>
-            </a>
-        </div>
-        <?php endif; ?>
-
-        <div class="post-content">
-            <h3 class="post-title">
-                <a href="<?php the_permalink(); ?>">
-                    <?php the_title(); ?>
-                </a>
-            </h3>
-
-            <div class="post-excerpt">
-                <?php the_excerpt(); ?>
-            </div>
-
-            <a href="<?php the_permalink(); ?>" class="read-more">
-                Read More
-            </a>
-        </div>
-    </article>
-</div>
-<?php
+    public function apply_search_filters($query_args, $widget) {
+        // Check if we have search parameters in the URL
+        if (!isset($_GET['query_id']) || empty($_GET['query_id'])) {
+            return $query_args;
+        }
+        
+        $url_query_id = sanitize_text_field($_GET['query_id']);
+        
+        // Get the widget's query ID
+        $widget_settings = $widget->get_settings();
+        $widget_query_id = isset($widget_settings['posts_query_id']) ? $widget_settings['posts_query_id'] : '';
+        
+        // Only apply filters if query IDs match
+        if ($widget_query_id !== $url_query_id) {
+            return $query_args;
+        }
+        
+        // Get search parameters from URL
+        $search_keyword = isset($_GET['search_keyword']) ? sanitize_text_field($_GET['search_keyword']) : '';
+        $search_location = isset($_GET['search_location']) ? sanitize_text_field($_GET['search_location']) : '';
+        $location_meta_key = isset($_GET['location_meta_key']) ? sanitize_text_field($_GET['location_meta_key']) : '';
+        
+        // Apply keyword search
+        if (!empty($search_keyword)) {
+            $query_args['s'] = $search_keyword;
+        }
+        
+        // Apply location meta search
+        if (!empty($search_location) && !empty($location_meta_key)) {
+            if (!isset($query_args['meta_query'])) {
+                $query_args['meta_query'] = array();
+            }
+            
+            $query_args['meta_query'][] = array(
+                'key' => $location_meta_key,
+                'value' => $search_location,
+                'compare' => 'LIKE'
+            );
+        }
+        
+        return $query_args;
     }
+    
 }
 
 // Initialize the shortcode

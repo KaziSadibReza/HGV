@@ -1,10 +1,26 @@
 /**
  * Elementor Loop Search - AJAX functionality
+ * Integrates with Elementor Loop Grid using query filters
  */
 (function ($) {
   "use strict";
 
   $(document).ready(function () {
+    // Apply search filters on page load if URL parameters exist
+    if (window.location.search) {
+      var urlParams = new URLSearchParams(window.location.search);
+      var searchKeyword = urlParams.get("search_keyword");
+      var searchLocation = urlParams.get("search_location");
+
+      // Populate search inputs with values from URL
+      if (searchKeyword) {
+        $('.job-search-input[name="search_keyword"]').val(searchKeyword);
+      }
+      if (searchLocation) {
+        $('.job-search-input[name="search_location"]').val(searchLocation);
+      }
+    }
+
     // Handle search form submission
     $(".elementor-loop-search-form").on("submit", function (e) {
       e.preventDefault();
@@ -12,7 +28,6 @@
       var $form = $(this);
       var $wrapper = $form.closest(".elementor-loop-search-wrapper");
       var $loader = $wrapper.find(".search-loader");
-      var $resultsContainer = $wrapper.find(".search-results-container");
 
       var queryId = $wrapper.data("query-id");
       var locationMeta = $wrapper.data("location-meta");
@@ -34,10 +49,20 @@
           .first();
       }
 
+      if ($loopGrid.length === 0) {
+        console.error(
+          "Could not find Elementor Loop Grid with query ID: " + queryId
+        );
+        alert(
+          "Error: Could not find the results grid. Please check your query ID."
+        );
+        return;
+      }
+
       // Show loader
       $loader.show();
 
-      // AJAX request
+      // Perform AJAX search to validate and get results count
       $.ajax({
         url: elementorLoopSearch.ajax_url,
         type: "POST",
@@ -50,49 +75,32 @@
           location_meta_key: locationMeta,
         },
         success: function (response) {
-          $loader.hide();
-
           if (response.success) {
-            // Update the Elementor loop grid or results container
-            if ($loopGrid.length > 0) {
-              // Find the container within the loop grid
-              var $gridContainer = $loopGrid.find(
-                ".elementor-loop-container, .elementor-posts-container, .elementor-container"
-              );
+            console.log(
+              "Search results: " + response.data.found_posts + " posts found"
+            );
 
-              if ($gridContainer.length > 0) {
-                // Replace content with new results
-                $gridContainer.html(response.data.html);
+            // Build URL parameters for page reload with filters
+            var currentUrl = window.location.href.split("?")[0].split("#")[0];
+            var params = new URLSearchParams();
 
-                // Trigger Elementor's event for any animations or interactions
-                if (typeof elementorFrontend !== "undefined") {
-                  elementorFrontend.elementsHandler.runReadyTrigger(
-                    $gridContainer
-                  );
-                }
-              } else {
-                // Fallback to results container
-                $resultsContainer.html(response.data.html);
-              }
-            } else {
-              // No loop grid found, use results container
-              $resultsContainer.html(response.data.html);
+            if (searchKeyword) {
+              params.append("search_keyword", searchKeyword);
+            }
+            if (searchLocation) {
+              params.append("search_location", searchLocation);
+            }
+            params.append("query_id", queryId);
+            if (locationMeta) {
+              params.append("location_meta_key", locationMeta);
             }
 
-            // Scroll to results
-            if ($loopGrid.length > 0) {
-              $("html, body").animate(
-                {
-                  scrollTop: $loopGrid.offset().top - 100,
-                },
-                500
-              );
-            }
-
-            // Show results count
-            console.log("Found " + response.data.found_posts + " posts");
+            // Reload page with search parameters
+            // This allows Elementor to apply filters properly
+            window.location.href = currentUrl + "?" + params.toString();
           } else {
-            alert("Error: " + response.data.message);
+            $loader.hide();
+            alert("Error: " + (response.data.message || "Search failed"));
           }
         },
         error: function (xhr, status, error) {
@@ -103,27 +111,19 @@
       });
     });
 
-    // Optional: Live search (search as you type)
-    var searchTimeout;
-    $('.elementor-loop-search-form input[type="text"]').on(
-      "keyup",
-      function () {
-        clearTimeout(searchTimeout);
-        var $form = $(this).closest(".elementor-loop-search-form");
+    // Clear search button functionality
+    $(document).on("click", ".clear-search-btn", function (e) {
+      e.preventDefault();
+      var currentUrl = window.location.href.split("?")[0].split("#")[0];
+      window.location.href = currentUrl;
+    });
 
-        searchTimeout = setTimeout(function () {
-          // Uncomment the line below to enable live search
-          // $form.submit();
-        }, 500);
+    // Optional: Enter key submit for inputs
+    $(".job-search-input").on("keypress", function (e) {
+      if (e.which === 13) {
+        e.preventDefault();
+        $(this).closest("form").submit();
       }
-    );
-
-    // Clear search
-    $(".elementor-loop-search-form").on("reset", function () {
-      var $form = $(this);
-      setTimeout(function () {
-        $form.submit();
-      }, 100);
     });
   });
 })(jQuery);
