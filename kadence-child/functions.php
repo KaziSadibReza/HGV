@@ -56,3 +56,7 @@ require_once get_stylesheet_directory() . '/include/frontend/featured-posts-shor
  * Include Elementor Form Auto-Advance feature auto-continue
  */
 require_once get_stylesheet_directory() . '/include/frontend/form-auto-continue.php';
+/**
+ * Include CPC Courses post type feature
+ */
+ require_once get_stylesheet_directory() . '/include/admin/cpc-courses-post-type.php';
