@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Remove Kadence settings meta box from 'Agents' post type
+ * Remove Kadence settings meta box from 'licences' post type
  *
  * @return void
  */

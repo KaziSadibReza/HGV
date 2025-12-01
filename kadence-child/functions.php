@@ -51,3 +51,8 @@ require_once get_stylesheet_directory() . '/include/frontend/elementor-loop-sear
  * Include Featured Posts shortcode feature
  */
 require_once get_stylesheet_directory() . '/include/frontend/featured-posts-shortcode.php';
+
+/**
+ * Include Elementor Form Auto-Advance feature auto-continue
+ */
+require_once get_stylesheet_directory() . '/include/frontend/form-auto-continue.php';
